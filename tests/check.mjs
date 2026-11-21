@@ -17,6 +17,7 @@ const VPS = [{ n: 390, w: 390, h: 844, mobile: true }, { n: 768, w: 768, h: 1024
 const SECS = ['how', 'ba-sec', 'brand', 'pricing', 'guide', 'owner', 'start'];
 const PICK = /^(chromium-390-(en|fa|de)-(hero|how|ba-sec|brand|pricing|owner|start|footer)|chromium-1440-(en|fa)-(hero|how|ba-sec|brand|pricing|owner|start)|webkit-390-(en|fa)-(hero|pricing|brand)|chromium-768-de-(hero|pricing)|chromium-390-en-reduced|chromium-390-en-hero-reel|chromium-390-en-hero-end|chromium-1440-en-hero-drop)$/;
 const report = { errors: [], overflow: [], sound: [], video: [], controls: [], fps: [], shots: 0, info: [] };
+const FILTER = process.env.FILTER ? new RegExp(process.env.FILTER) : null;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function track(page, tag) {
   page.on('console', (m) => { if (m.type() === 'error') report.errors.push({ tag, kind: 'console', text: m.text().slice(0, 300) }); });
@@ -51,6 +52,7 @@ for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
   const browser = await bt.launch();
   for (const vp of VPS) for (const lang of ['en', 'de', 'fa']) {
     const tag = `${bn}-${vp.n}-${lang}`;
+    if (FILTER && !FILTER.test(tag)) continue;
     const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, deviceScaleFactor: 1, isMobile: bn === 'chromium' && !!vp.mobile, hasTouch: !!vp.mobile, locale: { en: 'en-US', de: 'de-DE', fa: 'fa-IR' }[lang] });
     await ctx.addInitScript((l) => { try { localStorage.setItem('bl-lang', l); } catch (e) {} }, lang);
     const page = await ctx.newPage(); track(page, tag);
@@ -76,9 +78,13 @@ for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
       if (vp.n !== 768) {
         // controls: before/after drag, brand pick, calculator
         await to(page, 'ba-sec'); await sleep(500);
+        await page.evaluate(() => { window.__ev = []; const b = document.getElementById('ba'); ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'lostpointercapture', 'dragstart'].forEach((n) => b.addEventListener(n, (e) => window.__ev.push(n + ':' + Math.round(e.clientX)), true)); });
         const box = await page.locator('#ba').boundingBox();
+        const hit = await page.evaluate((p) => { const e = document.elementFromPoint(p.x, p.y); return e ? e.tagName + '.' + e.className : null; }, { x: box.x + box.width * .5, y: box.y + box.height * .5 });
         await page.mouse.move(box.x + box.width * .5, box.y + box.height * .5); await page.mouse.down(); await page.mouse.move(box.x + box.width * .2, box.y + box.height * .5, { steps: 6 }); await page.mouse.up();
         const bx = await page.evaluate(() => +document.getElementById('baH').getAttribute('aria-valuenow'));
+        const ev = await page.evaluate(() => window.__ev.slice(0, 12).join(' '));
+        report.info.push({ tag, hit, ev, box: [Math.round(box.x), Math.round(box.y), Math.round(box.width), Math.round(box.height)] });
         await to(page, 'brand'); await sleep(3200); await page.click('.opt[data-k="lindner"]'); await sleep(3000);
         const brand = await page.evaluate(() => ({ name: document.querySelector('[data-dname]').textContent, acc: getComputedStyle(document.documentElement).getPropertyValue('--d-acc').trim(), status: document.getElementById('brStatus').textContent }));
         await to(page, 'pricing'); await sleep(600);
@@ -106,5 +112,5 @@ for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
 server.close();
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));
 console.log(`shots ${report.shots}, errors ${report.errors.length}, overflow ${report.overflow.length}, sound ok ${report.sound.filter((p) => p.ok).length}/${report.sound.length}, controls ok ${report.controls.filter((p) => p.ok).length}/${report.controls.length}`);
-console.log(JSON.stringify({ errors: report.errors.slice(0, 40), overflow: report.overflow.slice(0, 20), sound: report.sound, video: report.video, controls: report.controls, fps: report.fps }, null, 1));
+console.log(JSON.stringify({ info: report.info, errors: report.errors.slice(0, 40), overflow: report.overflow.slice(0, 20), sound: report.sound, video: report.video, controls: report.controls, fps: report.fps }, null, 1));
 process.exit(report.errors.length || report.overflow.length ? 1 : 0);

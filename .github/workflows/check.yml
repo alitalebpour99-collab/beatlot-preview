@@ -2,7 +2,9 @@ name: check
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      filter: { required: false, default: "" }
 concurrency:
   group: check
   cancel-in-progress: true
@@ -10,13 +12,15 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     container: mcr.microsoft.com/playwright:v1.49.1-noble
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Install Playwright
         run: |
           npm i --no-save --no-package-lock playwright@1.49.1
       - name: Check the page in Chromium and WebKit, EN DE FA, 3 sizes
+        env:
+          FILTER: ${{ inputs.filter }}
         run: node tests/check.mjs
       - uses: actions/upload-artifact@v4
         if: always()

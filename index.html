@@ -187,7 +187,7 @@ html.anim .snd[aria-pressed="false"] { animation: invite 2.86s ease-in-out infin
 .cn.tl { left: -3px; top: -3px; } .cn.tr { right: -3px; top: -3px; } .cn.br { right: -3px; bottom: -3px; } .cn.bl { left: -3px; bottom: -3px; }
 .phone { position: relative; width: min(44vw, 172px); aspect-ratio: 9 / 16; border-radius: 6px; overflow: hidden; background: #050505; direction: ltr; }
 .shot { position: absolute; inset: 0; opacity: 0; overflow: hidden; }
-.shot img { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.07) saturate(1.06) sepia(.06); will-change: transform; }
+.shot img { position: absolute; left: 0; bottom: 0; width: 100%; height: 128%; object-fit: cover; object-position: center bottom; filter: contrast(1.07) saturate(1.06) sepia(.06); will-change: transform; }
 .shot.rev img { position: absolute; left: 0; bottom: 0; height: 128%; object-position: center bottom; }
 .brandtag { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 7px; letter-spacing: .3em; font-weight: 700; color: var(--d-acc); text-transform: uppercase; opacity: .9; z-index: 2; }
 .ovq { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); white-space: nowrap; font-size: 11px; font-weight: 700; color: #fff; background: rgba(10,9,7,.72); border: 1px solid var(--d-acc); border-radius: 999px; padding: 4px 10px; opacity: 0; z-index: 2; unicode-bidi: plaintext; }
@@ -586,8 +586,8 @@ footer nav a:hover { color: var(--ink); }
               <span class="edges" aria-hidden="true"><i class="eg t"></i><i class="eg r"></i><i class="eg b"></i><i class="eg l"></i></span>
               <i class="cn tl"></i><i class="cn tr"></i><i class="cn br"></i><i class="cn bl"></i>
               <div class="phone" id="ph">
-                <div class="shot" id="sA"><img src="assets/clip-grille.jpg" alt=""></div>
-                <div class="shot" id="sB"><img src="assets/clip-rear.jpg" alt=""></div>
+                <div class="shot" id="sA"><img src="assets/reel-grille.jpg" alt=""></div>
+                <div class="shot" id="sB"><img src="assets/reel-wheel.jpg" alt=""></div>
                 <div class="shot rev" id="sR"><img src="assets/reel-cclass.jpg" alt="Mercedes-Benz C-Class, finished Reel frame"></div>
                 <div class="brandtag" data-dname></div>
                 <div class="ovq" id="ovq" data-i="reel.q"></div>
@@ -1239,6 +1239,8 @@ function extract(img, fallback) {
     if (!rest.length) rest = pick.filter(function (p) { return p !== byL[0]; });
     var acc = (rest.length ? rest : pick).slice().sort(function (a, b) { return sat(b) - sat(a); })[0];
     if (contrast(acc, bg) < 2.2) acc = [217, 179, 106];
+    // thin letters can be too few pixels to count: never let the text colour equal the accent
+    if (dist(ink, acc) < 60) ink = fallback ? parseHex(fallback[1]) : [243, 236, 223];
     return [hex(bg), hex(ink), hex(acc)];
   } catch (e) { return fallback || ['#121110', '#F1E7D6', '#C9A24A']; }
 }
