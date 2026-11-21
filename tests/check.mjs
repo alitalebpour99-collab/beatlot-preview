@@ -45,7 +45,7 @@ async function overflow(page, tag) {
   });
   if (r.sw > r.W + 1 || r.bad.length) report.overflow.push({ tag, ...r });
 }
-async function to(page, id) { await page.evaluate((s) => { const e = document.getElementById(s); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 60); }, id); }
+async function to(page, id) { await page.evaluate((s) => { const e = document.getElementById(s); window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 60, behavior: 'instant' }); }, id); }
 async function fps(page, tag) { const n = await page.evaluate(() => new Promise((res) => { let c = 0; const t0 = performance.now(); const f = () => { c++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(c / 2); }; requestAnimationFrame(f); })); report.fps.push({ tag, fps: n }); }
 
 for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
@@ -62,7 +62,7 @@ for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
       if (lang === 'en' && vp.n !== 768) { await sleep(5600); await shot(page, `${tag}-hero-reel`); if (vp.n === 1440) { await sleep(1000); await shot(page, `${tag}-hero-drop`); } await sleep(5000); await shot(page, `${tag}-hero-end`); }
       if (bn === 'chromium' && vp.n === 390 && lang === 'en') await fps(page, tag + '-hero');
       // the sound tap: the context must run and the demo must make sounds
-      await page.evaluate(() => scrollTo(0, 0)); await sleep(300);
+      await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' })); await sleep(300);
       await page.click('#snd'); await sleep(2600);
       const s = await page.evaluate(() => window.BL.state());
       const sok = s.sound && s.ac === 'running' && s.played > 2;
@@ -74,7 +74,7 @@ for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
       await to(page, 'start'); await sleep(2800);
       const v = await page.evaluate(() => { const v = document.getElementById('loopv'); return { src: v.currentSrc, t: Math.round(v.currentTime * 100) / 100, paused: v.paused, ready: v.readyState, err: v.error && v.error.code }; });
       report.video.push({ tag, ...v }); if (!v.src) report.errors.push({ tag, kind: 'video', text: JSON.stringify(v) });
-      await page.evaluate(() => scrollTo(0, document.body.scrollHeight)); await sleep(800); await shot(page, `${tag}-footer`);
+      await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })); await sleep(800); await shot(page, `${tag}-footer`);
       if (vp.n !== 768) {
         // controls: before/after drag, brand pick, calculator
         await to(page, 'ba-sec'); await sleep(500);
@@ -95,7 +95,7 @@ for (const [bn, bt] of [['chromium', chromium], ['webkit', webkit]]) {
         await shot(page, `${tag}-pricing-30`);
       }
       // switch the language at runtime
-      await page.evaluate(() => scrollTo(0, 0)); await sleep(400);
+      await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' })); await sleep(400);
       const other = lang === 'fa' ? 'en' : 'fa';
       await page.click(`.lang button[data-l="${other}"]`); await sleep(1200); await shot(page, `${tag}-to-${other}`); await overflow(page, tag + '-to-' + other);
     } catch (e) { report.errors.push({ tag, kind: 'test', text: String(e).slice(0, 400) }); }
