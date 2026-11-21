@@ -1,0 +1,38 @@
+name: check
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+concurrency:
+  group: check
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.49.1-noble
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Playwright
+        run: |
+          npm i --no-save --no-package-lock playwright@1.49.1
+      - name: Check the page in Chromium and WebKit, EN DE FA, 3 sizes
+        run: node tests/check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: picks
+          path: out/picks
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report
+          path: out/report.json
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shots
+          path: out/shots
+          retention-days: 5
